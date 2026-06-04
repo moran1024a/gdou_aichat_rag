@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI对话助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .messages-container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 48px 16px 24px 16px;
+        }
+
+        .message {
+            margin-bottom: 32px;
+        }
+
+        .message-role {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .message-content {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #1a1a1a;
+            white-space: pre-wrap;
+        }
+
+        .input-wrapper {
+            flex-shrink: 0;
+            padding: 24px 0 32px 0;
+            background: #ffffff;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .input-container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .input-box {
+            position: relative;
+            background: #f5f5f5;
+            border-radius: 24px;
+            padding: 12px 56px 12px 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        #questionInput {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 15px;
+            outline: none;
+            resize: none;
+            font-family: inherit;
+            color: #1a1a1a;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        #questionInput::placeholder {
+            color: #999;
+        }
+
+        #sendButton {
+            position: absolute;
+            right: 12px;
+            width: 36px;
+            height: 36px;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s;
+        }
+
+        #sendButton:hover:not(:disabled) {
+            opacity: 0.8;
+        }
+
+        #sendButton:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        #sendButton svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .loading {
+            display: flex;
+            gap: 6px;
+            padding: 4px 0;
+        }
+
+        .loading span {
+            width: 8px;
+            height: 8px;
+            background: #ccc;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .loading span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .messages-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-wrapper::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages-wrapper::-webkit-scrollbar-thumb {
+            background: #e0e0e0;
+            border-radius: 3px;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 200px);
+            color: #ccc;
+            font-size: 15px;
+        }
+
+        .empty-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="messages-wrapper" id="messagesWrapper">
+            <div class="messages-container" id="messagesContainer">
+                <div class="empty-state">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <div>开始对话</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-wrapper">
+            <div class="input-container">
+                <div class="input-box">
+                    <textarea
+                        id="questionInput"
+                        placeholder="发送消息..."
+                        rows="1"
+                    ></textarea>
+                    <button id="sendButton">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesWrapper = document.getElementById('messagesWrapper');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const questionInput = document.getElementById('questionInput');
+        const sendButton = document.getElementById('sendButton');
+
+        function scrollToBottom() {
+            setTimeout(() => {
+                messagesWrapper.scrollTo({
+                    top: messagesWrapper.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+
+        questionInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+        });
+
+        function addMessage(content, isUser) {
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+
+            const roleDiv = document.createElement('div');
+            roleDiv.className = 'message-role';
+            roleDiv.textContent = isUser ? 'You' : 'AI';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+
+            messageDiv.appendChild(roleDiv);
+            messageDiv.appendChild(contentDiv);
+            messagesContainer.appendChild(messageDiv);
+
+            scrollToBottom();
+        }
+
+        function showLoading() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.id = 'loadingMessage';
+
+            const roleDiv = document.createElement('div');
+            roleDiv.className = 'message-role';
+            roleDiv.textContent = 'AI';
+
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.innerHTML = '<span></span><span></span><span></span>';
+
+            messageDiv.appendChild(roleDiv);
+            messageDiv.appendChild(loadingDiv);
+            messagesContainer.appendChild(messageDiv);
+
+            scrollToBottom();
+        }
+
+        function hideLoading() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+        }
+
+        async function sendMessage() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            questionInput.disabled = true;
+            sendButton.disabled = true;
+
+            addMessage(question, true);
+            questionInput.value = '';
+            questionInput.style.height = 'auto';
+
+            showLoading();
+
+            try {
+                const response = await fetch('/myapp/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: question })
+                });
+
+                const result = await response.json();
+
+                hideLoading();
+
+                if (result.code === 0) {
+                    addMessage(result.data, false);
+                } else {
+                    addMessage('抱歉，发生了错误: ' + result.msg, false);
+                }
+            } catch (error) {
+                hideLoading();
+                addMessage('抱歉，网络请求失败，请稍后重试。', false);
+            } finally {
+                questionInput.disabled = false;
+                sendButton.disabled = false;
+                questionInput.focus();
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+
+        questionInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !sendButton.disabled) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        questionInput.focus();
+    </script>
+</body>
+</html>
