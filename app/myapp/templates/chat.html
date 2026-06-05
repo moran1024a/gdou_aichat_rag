@@ -311,18 +311,27 @@
                     body: JSON.stringify({ question: question })
                 });
 
-                const result = await response.json();
+                const responseText = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    throw new Error(`服务端返回非JSON响应（HTTP ${response.status}）：${responseText.slice(0, 300)}`);
+                }
 
                 hideLoading();
 
-                if (result.code === 0) {
+                if (!response.ok) {
+                    addMessage(`请求失败（HTTP ${response.status}）：${result.msg || response.statusText}`, false);
+                } else if (result.code === 0) {
                     addMessage(result.data, false);
                 } else {
                     addMessage('抱歉，发生了错误: ' + result.msg, false);
                 }
             } catch (error) {
                 hideLoading();
-                addMessage('抱歉，网络请求失败，请稍后重试。', false);
+                addMessage('抱歉，请求失败：' + error.message, false);
+                console.error('chat request failed', error);
             } finally {
                 questionInput.disabled = false;
                 sendButton.disabled = false;

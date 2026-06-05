@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 import shutil
 from functools import wraps
@@ -25,6 +26,8 @@ from .document_parser import parse_document
 from .models import RagDatabase, RagDocument, RagRuntimeConfig
 from .rag import rag_manager
 from .storage import save_upload_file, validate_upload_file
+
+logger = logging.getLogger(__name__)
 
 ADMIN_SESSION_KEY = 'rag_admin_logged_in'
 SLUG_PATTERN = re.compile(r'^[A-Za-z0-9_-]+$')
@@ -79,15 +82,46 @@ def chat_view(request):
 @require_POST
 @csrf_exempt
 def chat(request):
+    request_id = request.META.get('HTTP_X_REQUEST_ID', '-')
+    remote_addr = request.META.get('HTTP_X_FORWARDED_FOR') or request.META.get('REMOTE_ADDR', '-')
+
     try:
         body = json.loads(request.body)
         question = body['question']
     except (json.JSONDecodeError, KeyError, TypeError):
+        logger.warning('chat_request_invalid request_id=%s remote=%s body=%r', request_id, remote_addr, request.body[:200])
         return APIResponse(code=1, msg='问题不能为空')
 
-    result = rag_manager.query_current(question)
+    if not isinstance(question, str) or not question.strip():
+        logger.warning('chat_question_empty request_id=%s remote=%s question=%r', request_id, remote_addr, question)
+        return APIResponse(code=1, msg='问题不能为空')
 
-    return APIResponse(code=0, msg=MSG_CHAT_SUCCESS, data=result)
+    logger.info('chat_request_start request_id=%s remote=%s question=%r', request_id, remote_addr, question[:200])
+
+    try:
+        runtime_config = rag_manager.get_runtime_config()
+        current_database = runtime_config.current_database
+        if current_database is None:
+            logger.error('chat_no_current_database request_id=%s runtime_config_id=%s', request_id, runtime_config.id)
+            return APIResponse(code=1, msg='未设置当前RAG数据库，请先在后台设置当前数据库')
+
+        logger.info(
+            'chat_runtime_config request_id=%s database_id=%s database_slug=%s llm_api_base=%s llm_key_configured=%s dashscope_key_configured=%s',
+            request_id,
+            current_database.id,
+            current_database.slug,
+            runtime_config.llm_api_base,
+            bool(runtime_config.llm_api_key),
+            bool(runtime_config.dashscope_api_key),
+        )
+
+        result = rag_manager.query_current(question)
+        logger.info('chat_request_success request_id=%s database_id=%s', request_id, current_database.id)
+        return APIResponse(code=0, msg=MSG_CHAT_SUCCESS, data=result)
+    except Exception as e:
+        logger.exception('chat_request_failed request_id=%s remote=%s error=%s', request_id, remote_addr, e)
+        error_msg = f'聊天请求处理失败：{e.__class__.__name__}: {e}'
+        return APIResponse(code=1, msg=error_msg)
 
 
 

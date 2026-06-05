@@ -15,6 +15,7 @@
 - [网页对话测试](#网页对话测试)
 - [外部接口说明](#外部接口说明)
 - [RAG 数据库目录说明](#rag-数据库目录说明)
+- [聊天接口排障与日志](#聊天接口排障与日志)
 - [维护注意事项](#维护注意事项)
 
 ## 项目简介
@@ -284,6 +285,7 @@ docker run -d \
   -e RAG_ADMIN_PASSWORD='your-password' \
   -e SQLITE_NAME=/app/data/db.sqlite3 \
   -e CSRF_TRUSTED_ORIGINS='https://rag.example.com' \
+  -e LOG_LEVEL=INFO \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/chroma_db:/app/chroma_db \
   -v $(pwd)/bm25:/app/bm25 \
@@ -317,6 +319,7 @@ docker run -d \
   -e RAG_ADMIN_PASSWORD='your-password' \
   -e SQLITE_NAME=/app/data/db.sqlite3 \
   -e CSRF_TRUSTED_ORIGINS='https://rag.example.com' \
+  -e LOG_LEVEL=INFO \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/chroma_db:/app/chroma_db \
   -v $(pwd)/bm25:/app/bm25 \
@@ -438,6 +441,7 @@ services:
       RAG_ADMIN_PASSWORD: "请修改为强密码"
       SQLITE_NAME: "/app/data/db.sqlite3"
       CSRF_TRUSTED_ORIGINS: "https://rag.example.com"
+      LOG_LEVEL: "INFO"
     volumes:
       - /opt/gdou_aichat_rag/app/data:/app/data
       - /opt/gdou_aichat_rag/app/chroma_db:/app/chroma_db
@@ -652,6 +656,106 @@ app/rag_databases/<slug>/mineru_output
 - `bm25/docs.json`：BM25 文档索引
 - `uploads`：上传原始文件
 - `mineru_output`：PDF 解析生成的 Markdown 和资源
+
+## 聊天接口排障与日志
+
+网页对话测试页 `/myapp/chat_view` 调用的是同一个外部接口：
+
+```text
+POST /myapp/chat
+```
+
+如果页面显示请求失败或后端返回错误，优先检查浏览器页面中显示的详细错误，以及容器日志。
+
+### 1. 查看容器日志
+
+Docker 部署：
+
+```bash
+docker logs -f gdou-aichat-rag
+```
+
+1Panel 部署：
+
+```text
+容器 -> gdou-aichat-rag -> 日志
+```
+
+后端聊天接口会输出类似日志：
+
+```text
+chat_request_start ...
+chat_runtime_config database_id=... database_slug=... llm_key_configured=True dashscope_key_configured=True
+chat_request_success ...
+```
+
+如果失败，会输出：
+
+```text
+chat_request_failed ...
+```
+
+并带有 Python 异常类型和错误信息。
+
+### 2. 常见非 API Key 问题
+
+除了 DeepSeek / DashScope API Key 填写错误外，还应检查：
+
+- 是否已执行数据库迁移：
+
+  ```bash
+  python manage.py migrate
+  ```
+
+- 后台是否已设置“当前使用数据库”；
+- 当前数据库是否已经上传并成功入库文档；
+- DashScope API Key 是否已配置，因为检索时 Rerank 也会使用 DashScope；
+- 容器是否挂载了正确的 `db.sqlite3`、`chroma_db`、`bm25`、`rag_databases` 目录；
+- 使用 HTTPS 域名访问后台时是否设置了 `CSRF_TRUSTED_ORIGINS`；
+- 反向代理是否设置了足够长的超时时间，建议不少于 300 秒。
+
+### 3. 直接测试接口
+
+可以用 curl 直接测试：
+
+```bash
+curl -i -X POST http://服务器IP:8000/myapp/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"测试问题"}'
+```
+
+正常情况下返回 JSON：
+
+```json
+{
+  "code": 0,
+  "msg": "对话成功",
+  "data": "..."
+}
+```
+
+如果失败，也会尽量返回 JSON，例如：
+
+```json
+{
+  "code": 1,
+  "msg": "聊天请求处理失败：..."
+}
+```
+
+### 4. 调整日志级别
+
+可通过环境变量设置日志级别：
+
+```bash
+LOG_LEVEL=INFO
+```
+
+需要更详细日志时可改为：
+
+```bash
+LOG_LEVEL=DEBUG
+```
 
 ## 维护注意事项
 
