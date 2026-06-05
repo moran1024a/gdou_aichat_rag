@@ -709,7 +709,7 @@ chat_request_failed ...
 
 - 后台是否已设置“当前使用数据库”；
 - 当前数据库是否已经上传并成功入库文档；
-- DashScope API Key 是否已配置，因为检索时 Rerank 也会使用 DashScope；
+- DashScope API Key 是否已配置，因为查询时 Rerank 也会使用 DashScope；如果 Rerank 返回 4xx/5xx，容器日志会输出 `dashscope_rerank_http_error` 和响应正文；
 - 容器是否挂载了正确的 `db.sqlite3`、`chroma_db`、`bm25`、`rag_databases` 目录；
 - 使用 HTTPS 域名访问后台时是否设置了 `CSRF_TRUSTED_ORIGINS`；
 - 反向代理是否设置了足够长的超时时间，建议不少于 300 秒。
@@ -760,7 +760,7 @@ LOG_LEVEL=DEBUG
 ## 维护注意事项
 
 - `db.sqlite3` 保存后台配置、当前数据库、API key 和文档记录，生产环境应限制文件权限并做好备份。
-- DashScope API Key 同时用于 Embedding 和 Rerank。
+- `gte-rerank-v2` 通过项目内自定义 HTTP 调用接入，失败时会记录 DashScope HTTP 状态码和响应正文，并回退到原始召回结果继续问答。
 - Embedding 模型固定为 `text-embedding-v4`，不要直接修改，否则可能影响已有 Chroma 数据兼容性。
 - 删除数据库会删除其物理目录；当前数据库、最后一个数据库和默认兼容数据库不允许删除。
 - PDF 解析和入库可能耗时较长，反向代理和 Gunicorn timeout 建议不少于 300 秒。

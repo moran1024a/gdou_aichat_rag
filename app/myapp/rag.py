@@ -1,7 +1,10 @@
+import json
+import logging
 import os
 import re
-import json
 import threading
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from django.conf import settings
@@ -12,8 +15,6 @@ from langchain_core.documents import Document
 from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_community.retrievers import BM25Retriever
 from langchain.retrievers import EnsembleRetriever
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain_community.document_compressors.dashscope_rerank import DashScopeRerank
 
 from chromadb.config import Settings as chromadbSettings
 from langchain_chroma import Chroma
@@ -46,6 +47,9 @@ from .config import (
 )
 from .models import RagDatabase, RagRuntimeConfig
 
+logger = logging.getLogger(__name__)
+DASHSCOPE_RERANK_ENDPOINT = 'https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank'
+
 
 class SchoolRAG:
     def __init__(self, database: RagDatabase, runtime_config: RagRuntimeConfig):
@@ -73,6 +77,7 @@ class SchoolRAG:
             if self.retriever is None: return MSG_SYSTEM_ERROR
 
             docs = self.retriever.get_relevant_documents(question)
+            docs = self._rerank_documents(question, docs)
             # for i, doc in enumerate(docs, 1):
             #     print(doc)
             #     print("*" * 50)
@@ -210,29 +215,99 @@ class SchoolRAG:
 
     def _build_retriever(self):
         if self.bm25_docs:
-            self.retriever = ContextualCompressionRetriever(
-                base_compressor=DashScopeRerank(
-                    dashscope_api_key=self.dashscope_api_key,
-                    model=RERANK_MODEL,
-                    top_n=RERANK_TOP_N
-                ),
-                base_retriever=EnsembleRetriever(
-                    retrievers=[
-                        self.vectorstore.as_retriever(
-                            search_type=VECTOR_SEARCH_TYPE,
-                            search_kwargs={"k": VECTOR_SEARCH_K}
-                        ),
-                        BM25Retriever.from_documents(
-                            documents=self.bm25_docs,
-                            preprocess_func=lambda text: list(jieba.cut(text)),
-                            k=BM25_K
-                        )
-                    ],
-                    weights=ENSEMBLE_WEIGHTS
-                )
+            self.retriever = EnsembleRetriever(
+                retrievers=[
+                    self.vectorstore.as_retriever(
+                        search_type=VECTOR_SEARCH_TYPE,
+                        search_kwargs={"k": VECTOR_SEARCH_K}
+                    ),
+                    BM25Retriever.from_documents(
+                        documents=self.bm25_docs,
+                        preprocess_func=lambda text: list(jieba.cut(text)),
+                        k=BM25_K
+                    )
+                ],
+                weights=ENSEMBLE_WEIGHTS
             )
         else:
             self.retriever = None
+
+    def _rerank_documents(self, query: str, docs):
+        if not docs:
+            return docs
+        if len(docs) <= 1:
+            logger.info('dashscope_rerank_skipped reason=single_document database_id=%s', self.database.id)
+            return docs
+        if not self.dashscope_api_key:
+            logger.warning('dashscope_rerank_skipped reason=missing_api_key database_id=%s', self.database.id)
+            return docs[:RERANK_TOP_N]
+
+        documents = [doc.page_content for doc in docs]
+        payload = {
+            "model": RERANK_MODEL,
+            "input": {
+                "query": query,
+                "documents": documents,
+            },
+            "parameters": {
+                "return_documents": False,
+                "top_n": min(RERANK_TOP_N, len(documents)),
+            }
+        }
+
+        request = urllib.request.Request(
+            DASHSCOPE_RERANK_ENDPOINT,
+            data=json.dumps(payload, ensure_ascii=False).encode('utf-8'),
+            headers={
+                'Authorization': f'Bearer {self.dashscope_api_key}',
+                'Content-Type': 'application/json',
+            },
+            method='POST'
+        )
+
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                response_body = response.read().decode('utf-8')
+                response_data = json.loads(response_body)
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode('utf-8', errors='replace')
+            logger.error(
+                'dashscope_rerank_http_error database_id=%s model=%s status=%s body=%s',
+                self.database.id,
+                RERANK_MODEL,
+                e.code,
+                error_body[:1000],
+            )
+            return docs[:RERANK_TOP_N]
+        except Exception as e:
+            logger.exception('dashscope_rerank_failed database_id=%s model=%s error=%s', self.database.id, RERANK_MODEL, e)
+            return docs[:RERANK_TOP_N]
+
+        results = response_data.get('output', {}).get('results')
+        if not isinstance(results, list):
+            logger.error(
+                'dashscope_rerank_invalid_response database_id=%s model=%s response=%s',
+                self.database.id,
+                RERANK_MODEL,
+                str(response_data)[:1000],
+            )
+            return docs[:RERANK_TOP_N]
+
+        reranked_docs = []
+        for result in results:
+            index = result.get('index')
+            if isinstance(index, int) and 0 <= index < len(docs):
+                doc = docs[index]
+                doc.metadata = dict(doc.metadata)
+                doc.metadata['rerank_score'] = result.get('relevance_score')
+                reranked_docs.append(doc)
+
+        if not reranked_docs:
+            logger.error('dashscope_rerank_empty_results database_id=%s model=%s response=%s', self.database.id, RERANK_MODEL, str(response_data)[:1000])
+            return docs[:RERANK_TOP_N]
+
+        logger.info('dashscope_rerank_success database_id=%s model=%s input_docs=%s output_docs=%s', self.database.id, RERANK_MODEL, len(docs), len(reranked_docs))
+        return reranked_docs
 
     def _clean_markdown_simple(self, md_text: str) -> str:
         """
