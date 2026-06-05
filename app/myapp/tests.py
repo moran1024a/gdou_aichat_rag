@@ -1,11 +1,16 @@
 import json
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sessions.middleware import SessionMiddleware
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from langchain_core.documents import Document
 
-from .config import RERANK_MODEL, RERANK_TOP_N
+from .config import DEEPSEEK_MAX_TOKENS, RERANK_MODEL, RERANK_TOP_N
+from .models import RagDatabase, RagRuntimeConfig
 from .rag import DASHSCOPE_RERANK_ENDPOINT, SchoolRAG
+from .views import ADMIN_SESSION_KEY, console_update_runtime_config
 
 
 class _Database:
@@ -31,6 +36,12 @@ class DirectDashScopeRerankTests(SimpleTestCase):
         rag = SchoolRAG.__new__(SchoolRAG)
         rag.database = _Database()
         rag.dashscope_api_key = api_key
+        rag.llm_api_base = 'https://api.deepseek.com'
+        rag.llm_api_key = 'test-key'
+        rag.runtime_config = SimpleNamespace(
+            rag_prompt_template='Context: {context}\nQuestion: {question}',
+            deepseek_max_tokens=256,
+        )
         return rag
 
     @patch('myapp.rag.urllib.request.urlopen')
@@ -73,3 +84,67 @@ class DirectDashScopeRerankTests(SimpleTestCase):
 
         self.assertEqual(result, docs[:RERANK_TOP_N])
         urlopen.assert_not_called()
+
+    @patch('myapp.rag.ChatDeepSeek')
+    def test_create_llm_uses_runtime_max_tokens(self, chat_deepseek):
+        self._rag()._create_llm()
+
+        self.assertEqual(chat_deepseek.call_args.kwargs['max_tokens'], 256)
+
+    def test_create_prompt_uses_runtime_template(self):
+        prompt = self._rag()._create_prompt()
+
+        self.assertEqual(prompt.template, 'Context: {context}\nQuestion: {question}')
+
+
+class RuntimeConfigConsoleTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.database = RagDatabase.objects.get(slug='default')
+        self.runtime_config = RagRuntimeConfig.objects.get(singleton_key=1)
+        self.runtime_config.current_database = self.database
+        self.runtime_config.llm_api_base = 'https://api.deepseek.com'
+        self.runtime_config.rag_prompt_template = 'old {context} {question}'
+        self.runtime_config.deepseek_max_tokens = DEEPSEEK_MAX_TOKENS
+        self.runtime_config.save()
+
+    def _request(self, data):
+        request = self.factory.post('/myapp/console/settings/', data=data)
+        SessionMiddleware(lambda req: None).process_request(request)
+        request.session[ADMIN_SESSION_KEY] = True
+        request.session.save()
+        request._messages = FallbackStorage(request)
+        return request
+
+    @patch('myapp.views.rag_manager.invalidate')
+    def test_update_runtime_config_saves_prompt_and_max_tokens(self, invalidate):
+        response = console_update_runtime_config(self._request({
+            'llm_api_base': 'https://example.test',
+            'llm_api_key': '',
+            'dashscope_api_key': '',
+            'rag_prompt_template': 'new prompt {context} {question}',
+            'deepseek_max_tokens': '2048',
+        }))
+
+        self.assertEqual(response.status_code, 302)
+        self.runtime_config.refresh_from_db()
+        self.assertEqual(self.runtime_config.llm_api_base, 'https://example.test')
+        self.assertEqual(self.runtime_config.rag_prompt_template, 'new prompt {context} {question}')
+        self.assertEqual(self.runtime_config.deepseek_max_tokens, 2048)
+        invalidate.assert_called_once()
+
+    @patch('myapp.views.rag_manager.invalidate')
+    def test_update_runtime_config_rejects_prompt_without_required_variables(self, invalidate):
+        response = console_update_runtime_config(self._request({
+            'llm_api_base': 'https://example.test',
+            'llm_api_key': '',
+            'dashscope_api_key': '',
+            'rag_prompt_template': 'missing variables',
+            'deepseek_max_tokens': '2048',
+        }))
+
+        self.assertEqual(response.status_code, 302)
+        self.runtime_config.refresh_from_db()
+        self.assertEqual(self.runtime_config.rag_prompt_template, 'old {context} {question}')
+        self.assertEqual(self.runtime_config.deepseek_max_tokens, DEEPSEEK_MAX_TOKENS)
+        invalidate.assert_not_called()

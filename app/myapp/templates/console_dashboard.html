@@ -247,7 +247,7 @@
             </div>
 
             <div class="card">
-                <h2>模型API配置</h2>
+                <h2>模型API与回答配置</h2>
                 <form method="post" action="/myapp/console/settings/">
                     {% csrf_token %}
                     <div class="field">
@@ -262,7 +262,17 @@
                         <label for="dashscope_api_key">DashScope API Key</label>
                         <input id="dashscope_api_key" name="dashscope_api_key" type="password" placeholder="{{ dashscope_api_key_masked }}；留空则不修改">
                     </div>
-                    <p class="muted">DashScope Key 同时用于 Embedding 和 Rerank；模型名称不可在后台修改。</p>
+                    <div class="field">
+                        <label for="deepseek_max_tokens">最大输出Token数</label>
+                        <input id="deepseek_max_tokens" name="deepseek_max_tokens" type="number" min="1" step="1" value="{{ runtime_config.deepseek_max_tokens }}" required>
+                        <p class="muted">控制模型最大输出长度；更具体的字数、口吻、回答规则请在提示词中调整。</p>
+                    </div>
+                    <div class="field">
+                        <label for="rag_prompt_template">回答提示词模板</label>
+                        <textarea id="rag_prompt_template" name="rag_prompt_template" style="min-height: 260px;" required>{{ runtime_config.rag_prompt_template }}</textarea>
+                        <p class="muted">必须保留 <code>{question}</code> 和 <code>{context}</code> 两个占位符。</p>
+                    </div>
+                    <p class="muted">DashScope Key 同时用于 Embedding 和 Rerank；Embedding 和 Rerank 模型名称暂保持代码配置。</p>
                     <button type="submit">保存配置</button>
                 </form>
             </div>

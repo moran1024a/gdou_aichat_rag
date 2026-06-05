@@ -1,5 +1,7 @@
 from django.db import models
 
+from .config import DEEPSEEK_MAX_TOKENS, RAG_PROMPT_TEMPLATE
+
 
 class RagDatabase(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name='数据库名称')
@@ -33,6 +35,8 @@ class RagRuntimeConfig(models.Model):
     llm_api_base = models.CharField(max_length=500, blank=True, verbose_name='大语言模型API地址')
     llm_api_key = models.CharField(max_length=500, blank=True, verbose_name='大语言模型API Key')
     dashscope_api_key = models.CharField(max_length=500, blank=True, verbose_name='DashScope API Key')
+    rag_prompt_template = models.TextField(default=RAG_PROMPT_TEMPLATE, verbose_name='回答提示词模板')
+    deepseek_max_tokens = models.PositiveIntegerField(default=DEEPSEEK_MAX_TOKENS, verbose_name='最大输出Token数')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 

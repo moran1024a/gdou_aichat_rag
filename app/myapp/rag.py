@@ -140,7 +140,7 @@ class SchoolRAG:
 
     def _create_prompt(self):
         return PromptTemplate(
-            template=RAG_PROMPT_TEMPLATE,
+            template=self.runtime_config.rag_prompt_template or RAG_PROMPT_TEMPLATE,
             input_variables=["context", "question"]
         )
 
@@ -152,7 +152,7 @@ class SchoolRAG:
             temperature=DEEPSEEK_TEMPERATURE,
             timeout=DEEPSEEK_TIMEOUT,
             max_retries=DEEPSEEK_MAX_RETRIES,
-            max_tokens=DEEPSEEK_MAX_TOKENS
+            max_tokens=getattr(self.runtime_config, 'deepseek_max_tokens', None) or DEEPSEEK_MAX_TOKENS
         )
 
     def _format_context(self, docs):
@@ -404,6 +404,8 @@ class RAGManager:
                         llm_api_base=DEEPSEEK_API_BASE,
                         llm_api_key=settings.DEEPSEEK_API_KEY,
                         dashscope_api_key=settings.DASHSCOPE_API_KEY,
+                        rag_prompt_template=RAG_PROMPT_TEMPLATE,
+                        deepseek_max_tokens=DEEPSEEK_MAX_TOKENS,
                     )
             except IntegrityError:
                 return RagRuntimeConfig.objects.select_related('current_database').order_by('id').first()

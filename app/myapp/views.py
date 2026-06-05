@@ -4,6 +4,7 @@ import re
 import shutil
 from functools import wraps
 from pathlib import Path
+from string import Formatter
 
 from django.conf import settings
 from django.contrib import messages
@@ -64,6 +65,26 @@ def _mask_key(value: str) -> str:
     if len(value) <= 8:
         return '已配置'
     return f'{value[:4]}****{value[-4:]}'
+
+
+def _parse_positive_int(value: str):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed <= 0:
+        return None
+    return parsed
+
+
+def _prompt_template_is_valid(template: str) -> bool:
+    if not template:
+        return False
+    try:
+        fields = {field_name for _, field_name, _, _ in Formatter().parse(template) if field_name}
+    except ValueError:
+        return False
+    return fields == {'question', 'context'}
 
 
 def admin_required(view_func):
@@ -320,12 +341,24 @@ def console_update_runtime_config(request):
     llm_api_base = request.POST.get('llm_api_base', '').strip()
     llm_api_key = request.POST.get('llm_api_key', '').strip()
     dashscope_api_key = request.POST.get('dashscope_api_key', '').strip()
+    rag_prompt_template = request.POST.get('rag_prompt_template', '').strip()
+    deepseek_max_tokens = _parse_positive_int(request.POST.get('deepseek_max_tokens', ''))
+
+    if not _prompt_template_is_valid(rag_prompt_template):
+        messages.error(request, '回答提示词模板不能为空，并且必须包含 {question} 和 {context}')
+        return redirect('/myapp/console/')
+
+    if deepseek_max_tokens is None:
+        messages.error(request, '最大输出Token数必须是正整数')
+        return redirect('/myapp/console/')
 
     runtime_config.llm_api_base = llm_api_base or DEEPSEEK_API_BASE
     if llm_api_key:
         runtime_config.llm_api_key = llm_api_key
     if dashscope_api_key:
         runtime_config.dashscope_api_key = dashscope_api_key
+    runtime_config.rag_prompt_template = rag_prompt_template
+    runtime_config.deepseek_max_tokens = deepseek_max_tokens
 
     runtime_config.save()
     rag_manager.invalidate()
