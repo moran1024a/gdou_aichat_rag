@@ -78,7 +78,7 @@ WSGI_APPLICATION = 'server.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.environ.get('SQLITE_NAME', BASE_DIR / 'db.sqlite3'),
     }
 }
 
@@ -138,3 +138,8 @@ UPLOAD_DIRECTORY = os.path.join(BASE_DIR, 'uploads')
 MINERU_OUTPUT_DIRECTORY = os.path.join(BASE_DIR, 'mineru_output')
 # BM25持久化路径
 BM25_PERSIST_DIRECTORY = os.path.join(BASE_DIR, 'bm25')
+# 多RAG数据库根目录
+RAG_DATABASE_ROOT = os.path.join(BASE_DIR, 'rag_databases')
+# 后台控制台账号密码，可通过环境变量覆盖
+RAG_ADMIN_USERNAME = os.environ.get('RAG_ADMIN_USERNAME', 'admin')
+RAG_ADMIN_PASSWORD = os.environ.get('RAG_ADMIN_PASSWORD', '')
