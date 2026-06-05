@@ -27,6 +27,12 @@ SECRET_KEY = 'django-insecure-oaos=(o6twi%7dd-b_4w75#if8#zc_f@xn30pz0mf7d5hsc7f1
 DEBUG = False
 
 ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition

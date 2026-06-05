@@ -283,6 +283,7 @@ docker run -d \
   -e RAG_ADMIN_USERNAME=admin \
   -e RAG_ADMIN_PASSWORD='your-password' \
   -e SQLITE_NAME=/app/data/db.sqlite3 \
+  -e CSRF_TRUSTED_ORIGINS='https://rag.example.com' \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/chroma_db:/app/chroma_db \
   -v $(pwd)/bm25:/app/bm25 \
@@ -315,6 +316,7 @@ docker run -d \
   -e RAG_ADMIN_USERNAME=admin \
   -e RAG_ADMIN_PASSWORD='your-password' \
   -e SQLITE_NAME=/app/data/db.sqlite3 \
+  -e CSRF_TRUSTED_ORIGINS='https://rag.example.com' \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/chroma_db:/app/chroma_db \
   -v $(pwd)/bm25:/app/bm25 \
@@ -435,6 +437,7 @@ services:
       RAG_ADMIN_USERNAME: "admin"
       RAG_ADMIN_PASSWORD: "请修改为强密码"
       SQLITE_NAME: "/app/data/db.sqlite3"
+      CSRF_TRUSTED_ORIGINS: "https://rag.example.com"
     volumes:
       - /opt/gdou_aichat_rag/app/data:/app/data
       - /opt/gdou_aichat_rag/app/chroma_db:/app/chroma_db
@@ -453,6 +456,8 @@ services:
 ### 7. 配置反向代理，绑定域名
 
 如果需要通过域名访问，可在 1Panel 网站/OpenResty 中创建反向代理：
+
+> 重要：通过 HTTPS 域名访问后台时，必须把完整来源写入 `CSRF_TRUSTED_ORIGINS`，例如 `https://rag.example.com`。多个来源用英文逗号分隔，例如 `https://rag.example.com,https://www.rag.example.com`。否则登录等后台 POST 表单可能出现 `CSRF verification failed`。
 
 - 域名：例如 `rag.example.com`
 - 代理地址：`http://127.0.0.1:8000`

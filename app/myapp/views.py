@@ -67,7 +67,7 @@ def admin_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.session.get(ADMIN_SESSION_KEY):
-            return redirect('/myapp/console/login')
+            return redirect('/myapp/console/login/')
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -105,7 +105,7 @@ def console_login_submit(request):
 
     if not settings.RAG_ADMIN_PASSWORD:
         messages.error(request, '后台密码未配置，请先设置 RAG_ADMIN_PASSWORD')
-        return redirect('/myapp/console/login')
+        return redirect('/myapp/console/login/')
 
     if username == settings.RAG_ADMIN_USERNAME and password == settings.RAG_ADMIN_PASSWORD:
         request.session[ADMIN_SESSION_KEY] = True
@@ -113,14 +113,14 @@ def console_login_submit(request):
         return redirect('/myapp/console/')
 
     messages.error(request, '账号或密码错误')
-    return redirect('/myapp/console/login')
+    return redirect('/myapp/console/login/')
 
 
 @admin_required
 def console_logout(request):
     request.session.pop(ADMIN_SESSION_KEY, None)
     messages.success(request, '已退出登录')
-    return redirect('/myapp/console/login')
+    return redirect('/myapp/console/login/')
 
 
 @admin_required

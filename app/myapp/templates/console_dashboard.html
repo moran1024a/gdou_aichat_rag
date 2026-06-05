@@ -201,7 +201,7 @@
             </div>
             <div class="actions">
                 <a href="/myapp/chat_view" target="_blank">打开网页对话测试</a>
-                <a class="secondary" href="/myapp/console/logout">退出</a>
+                <a class="secondary" href="/myapp/console/logout/">退出</a>
             </div>
         </div>
 
@@ -227,7 +227,7 @@
         <div class="grid">
             <div class="card">
                 <h2>新增RAG数据库</h2>
-                <form method="post" action="/myapp/console/databases/create">
+                <form method="post" action="/myapp/console/databases/create/">
                     {% csrf_token %}
                     <div class="field">
                         <label for="name">数据库名称</label>
@@ -248,7 +248,7 @@
 
             <div class="card">
                 <h2>模型API配置</h2>
-                <form method="post" action="/myapp/console/settings">
+                <form method="post" action="/myapp/console/settings/">
                     {% csrf_token %}
                     <div class="field">
                         <label for="llm_api_base">大语言模型API地址</label>
@@ -299,18 +299,18 @@
                                 <p class="muted">BM25：{{ database.bm25_directory }}</p>
                             </td>
                             <td>
-                                <form class="upload-form" method="post" action="/myapp/console/databases/{{ database.id }}/upload" enctype="multipart/form-data">
+                                <form class="upload-form" method="post" action="/myapp/console/databases/{{ database.id }}/upload/" enctype="multipart/form-data">
                                     {% csrf_token %}
                                     <input name="file" type="file" accept=".pdf,.txt" required>
                                     <button type="submit">上传入库</button>
                                 </form>
 
                                 {% if runtime_config.current_database_id != database.id %}
-                                    <form class="inline-form" method="post" action="/myapp/console/databases/{{ database.id }}/activate">
+                                    <form class="inline-form" method="post" action="/myapp/console/databases/{{ database.id }}/activate/">
                                         {% csrf_token %}
                                         <button class="secondary" type="submit">设为当前</button>
                                     </form>
-                                    <form class="inline-form" method="post" action="/myapp/console/databases/{{ database.id }}/delete" onsubmit="return confirm('确定删除该数据库及其文件吗？');">
+                                    <form class="inline-form" method="post" action="/myapp/console/databases/{{ database.id }}/delete/" onsubmit="return confirm('确定删除该数据库及其文件吗？');">
                                         {% csrf_token %}
                                         <button class="danger" type="submit">删除</button>
                                     </form>
