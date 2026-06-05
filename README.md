@@ -52,6 +52,8 @@
 - 设置当前外部接口使用的 RAG 数据库
 - 设置大语言模型 API 地址和 API Key
 - 设置 DashScope API Key
+- 在线修改回答提示词模板
+- 设置最大输出 Token 数
 - 保留单一外部问答接口：`POST /myapp/chat`
 - 保留网页对话测试页面：`GET /myapp/chat_view`
 - 上传文档统一通过后台控制台完成，不再公开未鉴权上传接口
@@ -203,13 +205,24 @@ MINERU_OUTPUT_DIRECTORY = os.path.join(BASE_DIR, 'mineru_output')
 BM25_PERSIST_DIRECTORY = os.path.join(BASE_DIR, 'bm25')
 ```
 
-### 模型 API 配置
+### 模型 API 与回答配置
 
 后台控制台中可配置：
 
 - 大语言模型 API 地址
 - 大语言模型 API Key
 - DashScope API Key
+- 回答提示词模板
+- 最大输出 Token 数
+
+回答提示词模板会用于最终回答生成，必须保留以下两个占位符：
+
+```text
+{question}
+{context}
+```
+
+字数限制、回答口吻、功能性约束等可通过提示词模板在线调整；最大输出 Token 数用于控制模型生成上限。
 
 固定不可在后台修改：
 
@@ -503,13 +516,14 @@ https://rag.example.com/myapp/console/
 
 登录后台后：
 
-1. 在“模型API配置”中填写大语言模型 API 地址。
+1. 在“模型API与回答配置”中填写大语言模型 API 地址。
    - DeepSeek 默认：`https://api.deepseek.com`
 2. 填写大语言模型 API Key。
 3. 填写 DashScope API Key。
-4. 保存配置。
-5. 如已有默认知识库，可直接打开 `/myapp/chat_view` 测试。
-6. 如需新知识库，先创建数据库，再上传文档，最后设为当前数据库。
+4. 按需调整回答提示词模板和最大输出 Token 数。
+5. 保存配置。
+6. 如已有默认知识库，可直接打开 `/myapp/chat_view` 测试。
+7. 如需新知识库，先创建数据库，再上传文档，最后设为当前数据库。
 
 ## 后台控制台使用说明
 
@@ -575,15 +589,17 @@ slug 只能包含：
 - 不能删除最后一个数据库；
 - 不能删除默认兼容数据库 `default`。
 
-### 设置 API
+### 设置 API 与回答参数
 
 后台可设置：
 
 - 大语言模型 API 地址
 - 大语言模型 API Key
 - DashScope API Key
+- 回答提示词模板
+- 最大输出 Token 数
 
-Key 输入框留空表示保持原值不变。
+Key 输入框留空表示保持原值不变。提示词模板必须保留 `{question}` 和 `{context}` 两个占位符；字数限制、回答口吻、功能性约束等可在提示词模板中调整。保存后会清理 RAG 缓存，下一次问答使用最新配置。
 
 ## 网页对话测试
 
