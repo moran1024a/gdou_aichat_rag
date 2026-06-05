@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.sqlite3
+app/bm25/
+app/chroma_db/
+app/mineru_output/
+app/uploads/
+app/rag_databases/
+claude-stuck.patch
+CLAUDE.md
+startclaude*.sh
