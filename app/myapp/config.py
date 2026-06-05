@@ -15,7 +15,7 @@ VECTOR_SEARCH_TYPE = "similarity"
 VECTOR_SEARCH_K = 10
 BM25_K = 10
 ENSEMBLE_WEIGHTS = [0.5, 0.5]
-RERANK_MODEL = "qwen3-rerank"
+RERANK_MODEL = "gte-rerank-v2"
 RERANK_TOP_N = 3
 
 DEEPSEEK_API_BASE = "https://api.deepseek.com"

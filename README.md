@@ -73,7 +73,7 @@
 - LangChain 0.3.x
 - Chroma / langchain-chroma
 - DashScope Embedding：`text-embedding-v4`
-- DashScope Rerank：`qwen3-rerank`
+- DashScope Rerank：`gte-rerank-v2`
 - DeepSeek Chat：`deepseek-chat`
 - MinerU：PDF 解析
 - jieba + rank_bm25：中文 BM25 检索
@@ -158,7 +158,7 @@ BM25 k=10
         ↓
 EnsembleRetriever weights=[0.5, 0.5]
         ↓
-DashScope Rerank qwen3-rerank top_n=3
+DashScope Rerank gte-rerank-v2 top_n=3
         ↓
 Prompt 拼接上下文
         ↓
@@ -214,7 +214,7 @@ BM25_PERSIST_DIRECTORY = os.path.join(BASE_DIR, 'bm25')
 固定不可在后台修改：
 
 - Embedding 模型：`text-embedding-v4`
-- Rerank 模型：`qwen3-rerank`
+- Rerank 模型：`gte-rerank-v2`
 - 默认 LLM 类：`ChatDeepSeek`
 - 默认 LLM 模型：`deepseek-chat`
 
