@@ -5,228 +5,99 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG后台控制台</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        :root { --primary: #17675f; --primary-hover: #10534c; --ink: #203532; --muted: #60736e; --border: #dce6e2; --surface: #fff; --background: #f3f7f5; --radius: 16px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; color: var(--ink); background: var(--background); line-height: 1.65; }
+        button, input, textarea { font: inherit; }
+        button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
+        :focus-visible { outline: 3px solid #318c80; outline-offset: 3px; }
+        button { cursor: pointer; }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+        .eyebrow { color: var(--primary); font-size: 12px; font-weight: 700; letter-spacing: .12em; margin-bottom: 6px; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
-            background: #f5f5f5;
-            color: #1a1a1a;
-            padding: 24px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-
-        h1 {
-            font-size: 28px;
-            margin-bottom: 6px;
-        }
-
-        h2 {
-            font-size: 20px;
-            margin-bottom: 16px;
-        }
-
-        .subtitle {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .actions a,
-        button,
-        .link-button {
-            display: inline-block;
-            padding: 10px 14px;
-            border: none;
-            border-radius: 8px;
-            background: #1a1a1a;
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .secondary {
-            background: #666;
-        }
-
-        .danger {
-            background: #b42318;
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 16px;
-        }
-
-        .field {
-            margin-bottom: 14px;
-        }
-
-        label {
-            display: block;
-            font-size: 14px;
-            margin-bottom: 6px;
-            color: #333;
-        }
-
-        input,
-        textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-            text-align: left;
-            font-size: 14px;
-            vertical-align: top;
-        }
-
-        th {
-            color: #666;
-            font-weight: 600;
-            background: #fafafa;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 999px;
-            background: #e8f5e9;
-            color: #1b5e20;
-            font-size: 12px;
-        }
-
-        .muted {
-            color: #777;
-            font-size: 13px;
-        }
-
-        .messages {
-            margin-bottom: 20px;
-        }
-
-        .message {
-            padding: 12px 14px;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 8px;
-        }
-
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .inline-form {
-            display: inline-block;
-            margin-right: 6px;
-            margin-bottom: 6px;
-        }
-
-        .upload-form {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .upload-form input[type="file"] {
-            width: auto;
-        }
-
-        code {
-            background: #f5f5f5;
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
+        body { padding: 36px 24px; }
+        .container { max-width: 1240px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 28px; }
+        h1 { font-size: clamp(24px, 3vw, 30px); font-weight: 650; margin-bottom: 6px; }
+        h2 { font-size: 18px; margin-bottom: 18px; }
+        h3 { font-size: 16px; }
+        .subtitle, .muted { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+        .muted { margin-top: 6px; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .actions a, button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; min-height: 44px; border: 1px solid transparent; border-radius: 10px; background: var(--primary); color: white; text-decoration: none; font-size: 14px; font-weight: 600; }
+        .actions a:hover, button:hover { background: var(--primary-hover); }
+        .actions .secondary, .secondary { color: var(--primary); background: #edf5f1; border-color: #d8e7df; }
+        .actions .secondary:hover, .secondary:hover { background: #dcece4; }
+        .danger { color: #9b3a32; background: #fff4f0; border-color: #efd9d1; }
+        .danger:hover { background: #f9e4dd; }
+        .card { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; margin-bottom: 24px; box-shadow: 0 3px 14px #20353204; }
+        .current-card { border-left: 4px solid var(--primary); }
+        .grid { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); gap: 24px; align-items: start; }
+        .field { min-width: 0; margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+        input, textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 9px; background: #fcfdfc; color: var(--ink); font-size: 14px; }
+        input:focus, textarea:focus { border-color: var(--primary); }
+        textarea { min-height: 100px; resize: vertical; }
+        fieldset { border: 0; min-width: 0; padding: 0; margin-bottom: 20px; }
+        legend { width: 100%; font-size: 13px; font-weight: 700; color: var(--primary); padding-bottom: 10px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; color: #1d6653; background: #e4f2e9; font-size: 12px; font-weight: 500; }
+        .badge.pending { background: #fbf0db; color: #805e1c; }
+        .messages { margin-bottom: 20px; }
+        .message { padding: 14px 18px; border-radius: 10px; font-size: 14px; margin-bottom: 8px; background: #edf3f0; overflow-wrap: anywhere; }
+        .message.error { background: #fff0eb; color: #943e32; }
+        .message.success { background: #e4f2e9; color: #1d6653; }
+        .database-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+        .database-card { min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: 12px; }
+        .database-card.active { border-color: #8cbaaa; background: #f8fcfa; }
+        .database-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; overflow-wrap: anywhere; }
+        .database-paths { margin: 14px 0; padding: 10px 12px; border-radius: 8px; background: #f1f5f3; }
+        .database-paths p { margin: 0; }
+        .database-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .upload-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .upload-form input[type="file"] { flex: 1 1 180px; min-width: 0; max-width: 100%; font-size: 13px; padding: 6px; }
+        input::file-selector-button { border: 0; background: #e7efe9; color: var(--ink); padding: 7px 10px; border-radius: 5px; margin-right: 8px; cursor: pointer; }
+        .empty-state { grid-column: 1 / -1; text-align: center; padding: 32px 16px; color: var(--muted); border: 1px dashed var(--border); border-radius: 12px; }
+        code { font-size: 12px; background: #edf3ef; padding: 2px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+        @media (max-width: 860px) { .grid, .database-grid { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 600px) { body { padding: 20px 12px; } .header { align-items: flex-start; flex-direction: column; } .card { padding: 20px 16px; margin-bottom: 18px; } .database-card { padding: 16px; } .grid { gap: 0; } input, textarea { font-size: 16px; } }
     </style>
 </head>
 <body>
-    <div class="container">
+    <main class="container">
         <div class="header">
             <div>
-                <h1>RAG后台控制台</h1>
+                <p class="eyebrow">校园问答 · 管理控制台</p><h1>知识库与服务配置</h1>
                 <p class="subtitle">管理多个独立RAG数据库、当前启用数据库和模型API配置</p>
             </div>
             <div class="actions">
-                <a href="/myapp/chat_view" target="_blank">打开网页对话测试</a>
+                <a href="/myapp/chat_view" target="_blank" rel="noopener noreferrer">打开网页对话测试</a>
                 <a class="secondary" href="/myapp/console/logout/">退出</a>
             </div>
         </div>
 
         {% if messages %}
-            <div class="messages">
+            <div class="messages" role="status">
                 {% for message in messages %}
                     <div class="message {{ message.tags }}">{{ message }}</div>
                 {% endfor %}
             </div>
         {% endif %}
 
-        <div class="card">
-            <h2>当前状态</h2>
+        <div class="card current-card">
+            <h2>当前知识库</h2>
             {% if runtime_config.current_database %}
                 <p>当前使用数据库：<strong>{{ runtime_config.current_database.name }}</strong> <span class="badge">{{ runtime_config.current_database.slug }}</span></p>
-                <p class="muted">外部接口 <code>POST /myapp/chat</code> 和测试页面 <code>/myapp/chat_view</code> 均使用该数据库。</p>
+                <p class="muted">校园问答将使用该数据库检索并生成回答。</p>
             {% else %}
-                <p>当前未设置使用数据库。</p>
+                <p>尚未启用知识库，请创建数据库并设为当前使用。</p>
             {% endif %}
-            <p class="muted">Embedding模型固定：<code>{{ embedding_model }}</code>；Rerank模型固定：<code>{{ rerank_model }}</code>。</p>
+            <p class="muted">Embedding模型：<code>{{ embedding_model }}</code>。</p>
         </div>
 
         <div class="grid">
             <div class="card">
-                <h2>新增RAG数据库</h2>
+                <h2>创建知识库</h2>
                 <form method="post" action="/myapp/console/databases/create/">
                     {% csrf_token %}
                     <div class="field">
@@ -247,24 +118,41 @@
             </div>
 
             <div class="card">
-                <h2>模型API与回答配置</h2>
+                <h2>模型与回答配置</h2>
                 <form method="post" action="/myapp/console/settings/">
                     {% csrf_token %}
+                    <fieldset><legend>对话服务</legend>
                     <div class="field">
                         <label for="llm_api_base">大语言模型API地址</label>
                         <input id="llm_api_base" name="llm_api_base" type="text" value="{{ runtime_config.llm_api_base }}">
                     </div>
                     <div class="field">
+                        <label for="llm_model">大语言模型ID</label>
+                        <input id="llm_model" name="llm_model" type="text" value="{{ runtime_config.llm_model }}" placeholder="例如 deepseek-chat" required>
+                    </div>
+                    <div class="field">
                         <label for="llm_api_key">大语言模型API Key</label>
                         <input id="llm_api_key" name="llm_api_key" type="password" placeholder="{{ llm_api_key_masked }}；留空则不修改">
                     </div>
+                    </fieldset>
+                    <fieldset><legend>嵌入服务</legend>
                     <div class="field">
-                        <label for="dashscope_api_key">DashScope API Key</label>
-                        <input id="dashscope_api_key" name="dashscope_api_key" type="password" placeholder="{{ dashscope_api_key_masked }}；留空则不修改">
+                        <label for="embedding_api_base">Embedding API地址</label>
+                        <input id="embedding_api_base" name="embedding_api_base" type="text" value="{{ runtime_config.embedding_api_base }}">
                     </div>
                     <div class="field">
-                        <label for="deepseek_max_tokens">最大输出Token数</label>
-                        <input id="deepseek_max_tokens" name="deepseek_max_tokens" type="number" min="1" step="1" value="{{ runtime_config.deepseek_max_tokens }}" required>
+                        <label for="embedding_api_key">Embedding API Key</label>
+                        <input id="embedding_api_key" name="embedding_api_key" type="password" placeholder="已配置时留空则不修改">
+                    </div>
+                    <div class="field">
+                        <label for="embedding_model">Embedding模型ID</label>
+                        <input id="embedding_model" name="embedding_model" type="text" value="{{ runtime_config.embedding_model }}" required>
+                    </div>
+                    </fieldset>
+                    <fieldset><legend>回答设置</legend>
+                    <div class="field">
+                        <label for="max_tokens">最大输出Token数</label>
+                        <input id="max_tokens" name="max_tokens" type="number" min="1" step="1" value="{{ runtime_config.max_tokens }}" required>
                         <p class="muted">控制模型最大输出长度；更具体的字数、口吻、回答规则请在提示词中调整。</p>
                     </div>
                     <div class="field">
@@ -272,69 +160,51 @@
                         <textarea id="rag_prompt_template" name="rag_prompt_template" style="min-height: 260px;" required>{{ runtime_config.rag_prompt_template }}</textarea>
                         <p class="muted">必须保留 <code>{question}</code> 和 <code>{context}</code> 两个占位符。</p>
                     </div>
-                    <p class="muted">DashScope Key 同时用于 Embedding 和 Rerank；Embedding 和 Rerank 模型名称暂保持代码配置。</p>
+                    </fieldset>
+                    <p class="muted">LLM 与 Embedding 可使用不同的兼容协议接口、Key 和模型。</p>
                     <button type="submit">保存配置</button>
                 </form>
             </div>
         </div>
 
         <div class="card">
-            <h2>RAG数据库列表</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>名称</th>
-                        <th>标识</th>
-                        <th>文档数</th>
-                        <th>路径</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for database in databases %}
-                        <tr>
-                            <td>
-                                <strong>{{ database.name }}</strong>
-                                {% if runtime_config.current_database_id == database.id %}
-                                    <span class="badge">当前使用</span>
-                                {% endif %}
-                                {% if database.description %}
-                                    <p class="muted">{{ database.description }}</p>
-                                {% endif %}
-                            </td>
-                            <td>{{ database.slug }}</td>
-                            <td>{{ database.document_count }}</td>
-                            <td>
-                                <p class="muted">Chroma：{{ database.vector_directory }}</p>
-                                <p class="muted">BM25：{{ database.bm25_directory }}</p>
-                            </td>
-                            <td>
-                                <form class="upload-form" method="post" action="/myapp/console/databases/{{ database.id }}/upload/" enctype="multipart/form-data">
-                                    {% csrf_token %}
-                                    <input name="file" type="file" accept=".pdf,.txt" required>
-                                    <button type="submit">上传入库</button>
+            <h2>知识库列表</h2>
+            <div class="database-grid">
+                {% for database in databases %}
+                    <article class="database-card {% if runtime_config.current_database_id == database.id %}active{% endif %}">
+                        <div class="database-title">
+                            <h3>{{ database.name }}</h3>
+                            {% if runtime_config.current_database_id == database.id %}<span class="badge">当前使用</span>{% endif %}
+                            {% if database.index_status == 'ready' %}<span class="badge">索引就绪</span>{% else %}<span class="badge pending">索引待就绪</span>{% endif %}
+                        </div>
+                        <p class="muted">标识：{{ database.slug }} · 文档：{{ database.document_count }} 份</p>
+                        {% if database.description %}<p class="muted">{{ database.description }}</p>{% endif %}
+                        <div class="database-paths">
+                            <p class="muted">Chroma：{{ database.vector_directory }}</p>
+                            <p class="muted">BM25：{{ database.bm25_directory }}</p>
+                        </div>
+                        <form class="upload-form" method="post" action="/myapp/console/databases/{{ database.id }}/upload/" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <label for="file-{{ database.id }}">上传 TXT 文档</label>
+                            <input id="file-{{ database.id }}" name="file" type="file" accept=".txt" required>
+                            <button class="secondary" type="submit">上传入库</button>
+                        </form>
+                        {% if runtime_config.current_database_id != database.id %}
+                            <div class="database-actions">
+                                <form method="post" action="/myapp/console/databases/{{ database.id }}/activate/">
+                                    {% csrf_token %}<button type="submit">设为当前</button>
                                 </form>
-
-                                {% if runtime_config.current_database_id != database.id %}
-                                    <form class="inline-form" method="post" action="/myapp/console/databases/{{ database.id }}/activate/">
-                                        {% csrf_token %}
-                                        <button class="secondary" type="submit">设为当前</button>
-                                    </form>
-                                    <form class="inline-form" method="post" action="/myapp/console/databases/{{ database.id }}/delete/" onsubmit="return confirm('确定删除该数据库及其文件吗？');">
-                                        {% csrf_token %}
-                                        <button class="danger" type="submit">删除</button>
-                                    </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% empty %}
-                        <tr>
-                            <td colspan="5">暂无数据库。</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                <form method="post" action="/myapp/console/databases/{{ database.id }}/delete/" onsubmit="return confirm('确定删除该数据库及其文件吗？');">
+                                    {% csrf_token %}<button class="danger" type="submit">删除</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </article>
+                {% empty %}
+                    <p class="empty-state">暂无知识库。创建数据库后，上传 TXT 文档即可准备校园问答内容。</p>
+                {% endfor %}
+            </div>
         </div>
-    </div>
+    </main>
 </body>
 </html>

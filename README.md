@@ -47,11 +47,11 @@
 - 后台 Web 控制台：`/myapp/console/`
 - 多个独立 RAG 数据库管理
 - 新增 RAG 数据库
-- 向已有 RAG 数据库上传 PDF/TXT 数据
+- 向已有 RAG 数据库上传 UTF-8 TXT 数据
 - 删除非当前 RAG 数据库
 - 设置当前外部接口使用的 RAG 数据库
 - 设置大语言模型 API 地址和 API Key
-- 设置 DashScope API Key
+- 分别配置 LLM 与 Embedding 的兼容协议 API、Key 和模型 ID
 - 在线修改回答提示词模板
 - 设置最大输出 Token 数
 - 保留单一外部问答接口：`POST /myapp/chat`
@@ -74,10 +74,7 @@
 - Django 4.1.13
 - LangChain 0.3.x
 - Chroma / langchain-chroma
-- DashScope Embedding：`text-embedding-v4`
-- DashScope Rerank：`gte-rerank-v2`
-- DeepSeek Chat：`deepseek-chat`
-- MinerU：PDF 解析
+- OpenAI 兼容 Chat API（模型 ID 可配置）
 - jieba + rank_bm25：中文 BM25 检索
 - SQLite：Django 后台配置与元数据存储
 
@@ -96,8 +93,8 @@ app/
 │   └── asgi.py
 ├── myapp/
 │   ├── apps.py
-│   ├── config.py                     # RAG 参数、上传限制、Prompt、固定模型常量
-│   ├── document_parser.py            # PDF/TXT 内容解析
+│   ├── config.py                     # RAG 参数、上传限制、Prompt 和默认配置
+│   ├── document_parser.py            # UTF-8 TXT 内容解析
 │   ├── storage.py                    # 上传校验与保存
 │   ├── models.py                     # RAG 数据库、运行配置、文档记录模型
 │   ├── rag.py                        # SchoolRAG 与 RAGManager
@@ -108,13 +105,10 @@ app/
 │   │   └── 0001_initial.py
 │   └── templates/
 │       ├── chat.html                 # 网页对话测试
-│       ├── upload.html               # 历史上传模板，当前未公开路由，上传以后台控制台为准
 │       ├── console_login.html        # 后台登录页
 │       └── console_dashboard.html    # 后台控制台
 ├── chroma_db/                        # 兼容原始版本的默认 Chroma 目录
 ├── bm25/                             # 兼容原始版本的默认 BM25 目录
-├── uploads/                          # 兼容原始版本的默认上传目录
-├── mineru_output/                    # 兼容原始版本的默认 MinerU 输出目录
 └── rag_databases/                    # 新增 RAG 数据库默认根目录
     └── <slug>/
         ├── chroma_db/
@@ -130,11 +124,11 @@ app/
 ```text
 后台选择目标 RAG 数据库
         ↓
-上传 PDF/TXT
+上传 TXT
         ↓
 保存到该数据库 uploads/
         ↓
-PDF 使用 MinerU 转 Markdown；TXT 直接读取
+TXT 直接读取并切片
         ↓
 MarkdownHeaderTextSplitter 按标题切分
         ↓
@@ -160,11 +154,10 @@ BM25 k=10
         ↓
 EnsembleRetriever weights=[0.5, 0.5]
         ↓
-DashScope Rerank gte-rerank-v2 top_n=3
         ↓
 Prompt 拼接上下文
         ↓
-DeepSeek deepseek-chat 生成回答
+兼容协议 Chat API 生成回答
 ```
 
 ## 配置说明
@@ -211,7 +204,6 @@ BM25_PERSIST_DIRECTORY = os.path.join(BASE_DIR, 'bm25')
 
 - 大语言模型 API 地址
 - 大语言模型 API Key
-- DashScope API Key
 - 回答提示词模板
 - 最大输出 Token 数
 
@@ -227,8 +219,6 @@ BM25_PERSIST_DIRECTORY = os.path.join(BASE_DIR, 'bm25')
 固定不可在后台修改：
 
 - Embedding 模型：`text-embedding-v4`
-- Rerank 模型：`gte-rerank-v2`
-- 默认 LLM 类：`ChatDeepSeek`
 - 默认 LLM 模型：`deepseek-chat`
 
 ## 本地开发运行
@@ -362,7 +352,7 @@ docker run -d \
 
 - Ubuntu 22.04 LTS
 - 2 核 CPU 以上
-- 4GB 内存以上，PDF 解析较多时建议 8GB+
+- 建议至少 2GB 内存，按知识库规模预留磁盘空间
 - 磁盘空间根据上传文档和向量库规模预留
 
 更新系统：
@@ -494,7 +484,7 @@ location / {
 }
 ```
 
-PDF 解析和入库可能耗时较长，建议代理超时时间不低于 300 秒。
+TXT 入库和模型请求可能耗时较长，代理超时时间建议不低于 300 秒。
 
 ### 8. 访问后台
 
@@ -517,9 +507,9 @@ https://rag.example.com/myapp/console/
 登录后台后：
 
 1. 在“模型API与回答配置”中填写大语言模型 API 地址。
-   - DeepSeek 默认：`https://api.deepseek.com`
+   - LLM API 地址按实际兼容协议服务填写。
 2. 填写大语言模型 API Key。
-3. 填写 DashScope API Key。
+3. 分别填写 LLM 与 Embedding 的 API 地址、Key 和模型 ID。
 4. 按需调整回答提示词模板和最大输出 Token 数。
 5. 保存配置。
 6. 如已有默认知识库，可直接打开 `/myapp/chat_view` 测试。
@@ -595,7 +585,6 @@ slug 只能包含：
 
 - 大语言模型 API 地址
 - 大语言模型 API Key
-- DashScope API Key
 - 回答提示词模板
 - 最大输出 Token 数
 
@@ -671,7 +660,6 @@ app/rag_databases/<slug>/mineru_output
 - `chroma_db`：Chroma 向量库
 - `bm25/docs.json`：BM25 文档索引
 - `uploads`：上传原始文件
-- `mineru_output`：PDF 解析生成的 Markdown 和资源
 
 ## 聊天接口排障与日志
 
@@ -715,7 +703,7 @@ chat_request_failed ...
 
 ### 2. 常见非 API Key 问题
 
-除了 DeepSeek / DashScope API Key 填写错误外，还应检查：
+除了模型 API 地址、Key 或模型 ID 填写错误外，还应检查：
 
 - 是否已执行数据库迁移：
 
@@ -725,7 +713,6 @@ chat_request_failed ...
 
 - 后台是否已设置“当前使用数据库”；
 - 当前数据库是否已经上传并成功入库文档；
-- DashScope API Key 是否已配置，因为查询时 Rerank 也会使用 DashScope；如果 Rerank 返回 4xx/5xx，容器日志会输出 `dashscope_rerank_http_error` 和响应正文；
 - 容器是否挂载了正确的 `db.sqlite3`、`chroma_db`、`bm25`、`rag_databases` 目录；
 - 使用 HTTPS 域名访问后台时是否设置了 `CSRF_TRUSTED_ORIGINS`；
 - 反向代理是否设置了足够长的超时时间，建议不少于 300 秒。
@@ -776,10 +763,41 @@ LOG_LEVEL=DEBUG
 ## 维护注意事项
 
 - `db.sqlite3` 保存后台配置、当前数据库、API key 和文档记录，生产环境应限制文件权限并做好备份。
-- `gte-rerank-v2` 通过项目内自定义 HTTP 调用接入，失败时会记录 DashScope HTTP 状态码和响应正文，并回退到原始召回结果继续问答。
 - Embedding 模型固定为 `text-embedding-v4`，不要直接修改，否则可能影响已有 Chroma 数据兼容性。
 - 删除数据库会删除其物理目录；当前数据库、最后一个数据库和默认兼容数据库不允许删除。
-- PDF 解析和入库可能耗时较长，反向代理和 Gunicorn timeout 建议不少于 300 秒。
 - 当前后台为轻量 session 登录，不提供 Web 修改后台密码功能。
-- 若 DeepSeek 或 DashScope API Key 未配置，聊天或入库链路会因外部服务不可用而失败。
+- 若 LLM 或 Embedding API 未配置，聊天或入库链路会因外部服务不可用而失败。
 - 不要将包含 API key 的 `db.sqlite3` 提交到代码仓库。
+
+## 轻量化运行说明
+
+当前版本仅接收 UTF-8 TXT。LLM 与 Embedding 分别使用 OpenAI 兼容的 `/chat/completions` 和 `/embeddings` 接口，可在后台独立配置地址、Key 和模型。知识库数据位于 `rag_databases/`，重建或备份前请停服。Docker 文件仅提供静态部署配置，本环境未执行 Docker 构建验证。
+
+### 1Panel 本机端口部署
+
+项目提供独立的 `docker-compose.1panel.yml`，适合在 1Panel 的 Docker Compose 项目中使用。该编排不包含 HTTPS、域名或反向代理配置，容器端口只绑定到服务器本机 `127.0.0.1:8000`。
+
+先创建外部网络并准备环境变量：
+
+```bash
+docker network create 1panel-network
+export SECRET_KEY='请设置随机密钥'
+export RAG_ADMIN_PASSWORD='请设置后台密码'
+export LLM_API_KEY='请设置对话模型Key'
+export EMBEDDING_API_KEY='请设置嵌入模型Key'
+```
+
+再启动服务：
+
+```bash
+docker compose -f docker-compose.1panel.yml up -d --build
+```
+
+服务启动时会自动执行数据库迁移。管理页面和对话页面分别为：
+
+```text
+http://127.0.0.1:8000/myapp/console/
+http://127.0.0.1:8000/myapp/chat_view
+```
+
+数据持久化在编排文件同目录的 `data/` 下；停止服务后仍会保留数据库、索引和上传文件。

@@ -1,0 +1,17 @@
+services:
+  web:
+    build: ./app
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      RAG_ADMIN_PASSWORD: ${RAG_ADMIN_PASSWORD}
+      LLM_API_BASE: ${LLM_API_BASE}
+      LLM_API_KEY: ${LLM_API_KEY}
+      EMBEDDING_API_BASE: ${EMBEDDING_API_BASE}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}
+    volumes:
+      - ./app/db.sqlite3:/app/db.sqlite3
+      - ./app/rag_databases:/app/rag_databases
+      - ./app/chroma_db:/app/chroma_db
+      - ./app/bm25:/app/bm25

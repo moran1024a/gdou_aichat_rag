@@ -1,10 +1,5 @@
 Django==4.1.13
-langchain==0.3.26
-langchain-community==0.3.23
-langchain-chroma==0.2.4
-langchain-experimental==0.3.4
-langchain-deepseek==0.1.2
-dashscope==1.25.1
-mineru[core]==2.6.4
+chromadb==1.5.9
 jieba==0.42.1
 rank_bm25==0.2.2
+gunicorn==22.0.0

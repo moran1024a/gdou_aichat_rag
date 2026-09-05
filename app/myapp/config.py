@@ -1,6 +1,6 @@
 UPLOAD_FIELD_NAME = "file"
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
-ALLOWED_UPLOAD_EXTENSIONS = ['.pdf', '.txt']
+ALLOWED_UPLOAD_EXTENSIONS = ['.txt']
 TXT_ENCODING = 'utf-8'
 
 MINERU_MODEL_SOURCE = "local"
@@ -10,13 +10,14 @@ MINERU_FORMULA_ENABLE = False
 MINERU_TABLE_ENABLE = True
 
 CHROMA_COLLECTION_NAME = "school-rag"
+EMBEDDING_API_BASE = ""
 EMBEDDING_MODEL = "text-embedding-v4"
 VECTOR_SEARCH_TYPE = "similarity"
 VECTOR_SEARCH_K = 10
 BM25_K = 10
 ENSEMBLE_WEIGHTS = [0.5, 0.5]
-RERANK_MODEL = "gte-rerank-v2"
-RERANK_TOP_N = 3
+RERANK_MODEL = ""
+RERANK_TOP_N = 0
 
 DEEPSEEK_API_BASE = "https://api.deepseek.com"
 DEEPSEEK_MODEL = "deepseek-chat"
@@ -32,7 +33,7 @@ MSG_FILE_TOO_LARGE = "文件大小不能超过 10MB"
 MSG_FILE_TYPE_NOT_ALLOWED = "文件类型不允许"
 MSG_SYSTEM_ERROR = "系统异常"
 
-RAG_PROMPT_TEMPLATE = """你叫零一，是广东海洋大学数学与计算机学院研发的智能机器人，同时也是广东海洋大学智慧海豚团队的科普小助手，专注于中华白海豚及相关海洋知识的科普。
+RAG_PROMPT_TEMPLATE = """你是校园资料问答助手。请严格依据提供的资料回答问题，不要使用资料之外的知识。
 
         ## 核心要求
         **字数限制**：回答必须严格控制在150字以内，优先提供最关键的信息。
@@ -44,12 +45,11 @@ RAG_PROMPT_TEMPLATE = """你叫零一，是广东海洋大学数学与计算机�
         - 保留文档中的HTTP/HTTPS链接
 
         2. **检索文档为空或无关时**：
-        - 使用自身知识简要回答，优先白海豚及海洋科普内容
-        - 无法确定时如实说明
+        - 资料为空、无关或不足时，明确说明“根据现有资料无法确定”，不要猜测
 
         ## 表达规范
         - 直接作答，不提及检索或文档来源
-        - 语言自然简洁，符合科普风格
+        - 语言自然简洁，优先给出直接结论
         - 中文问答用中文，英文用英文
         - 内容超限时优先保留：核心科普事实 > 关键数据 > 链接
 

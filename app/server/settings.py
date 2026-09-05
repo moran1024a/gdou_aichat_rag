@@ -152,7 +152,8 @@ LOGGING = {
 }
 
 # DeepSeek大模型KEY密钥
-DEEPSEEK_API_KEY = ''
+DEEPSEEK_API_KEY = os.environ.get('LLM_API_KEY', '')
+EMBEDDING_API_BASE = os.environ.get('EMBEDDING_API_BASE', '')
 # 阿里云百炼大模型KEY密钥
 DASHSCOPE_API_KEY = ''
 # RAG知识库路径

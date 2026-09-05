@@ -20,7 +20,6 @@ from .config import (
     MSG_CHAT_SUCCESS,
     MSG_NO_FILE,
     MSG_UPLOAD_ERROR,
-    RERANK_MODEL,
     UPLOAD_FIELD_NAME,
 )
 from .document_parser import parse_document
@@ -186,8 +185,7 @@ def console_dashboard(request):
     context = {
         'runtime_config': runtime_config,
         'databases': databases,
-        'embedding_model': EMBEDDING_MODEL,
-        'rerank_model': RERANK_MODEL,
+        'embedding_model': runtime_config.embedding_model or EMBEDDING_MODEL,
         'llm_api_key_masked': _mask_key(runtime_config.llm_api_key),
         'dashscope_api_key_masked': _mask_key(runtime_config.dashscope_api_key),
     }
@@ -258,7 +256,7 @@ def _upload_to_database(request, database: RagDatabase):
     _ensure_database_directories(database)
     file_path = save_upload_file(upload, ext, upload_directory=database.upload_directory)
     try:
-        content = parse_document(file_path, ext, mineru_output_directory=database.mineru_output_directory)
+        content = parse_document(file_path, ext)
         add_result = rag_manager.add_documents(database, content, file_path=str(file_path), file_name=upload.name)
     except Exception as e:
         print(e)
@@ -339,26 +337,33 @@ def console_update_runtime_config(request):
     runtime_config = _get_runtime_config()
 
     llm_api_base = request.POST.get('llm_api_base', '').strip()
+    llm_model = request.POST.get('llm_model', '').strip()
     llm_api_key = request.POST.get('llm_api_key', '').strip()
-    dashscope_api_key = request.POST.get('dashscope_api_key', '').strip()
+    embedding_api_base = request.POST.get('embedding_api_base', '').strip()
+    embedding_api_key = request.POST.get('embedding_api_key', '').strip()
+    embedding_model = request.POST.get('embedding_model', '').strip()
     rag_prompt_template = request.POST.get('rag_prompt_template', '').strip()
-    deepseek_max_tokens = _parse_positive_int(request.POST.get('deepseek_max_tokens', ''))
+    max_tokens = _parse_positive_int(request.POST.get('max_tokens', ''))
 
     if not _prompt_template_is_valid(rag_prompt_template):
         messages.error(request, '回答提示词模板不能为空，并且必须包含 {question} 和 {context}')
         return redirect('/myapp/console/')
 
-    if deepseek_max_tokens is None:
+    if max_tokens is None:
         messages.error(request, '最大输出Token数必须是正整数')
         return redirect('/myapp/console/')
 
     runtime_config.llm_api_base = llm_api_base or DEEPSEEK_API_BASE
+    runtime_config.llm_model = llm_model
     if llm_api_key:
         runtime_config.llm_api_key = llm_api_key
-    if dashscope_api_key:
-        runtime_config.dashscope_api_key = dashscope_api_key
+    if embedding_api_key:
+        runtime_config.embedding_api_key = embedding_api_key
+    runtime_config.embedding_api_base = embedding_api_base
+    runtime_config.embedding_model = embedding_model
     runtime_config.rag_prompt_template = rag_prompt_template
-    runtime_config.deepseek_max_tokens = deepseek_max_tokens
+    runtime_config.deepseek_max_tokens = max_tokens
+    runtime_config.max_tokens = max_tokens
 
     runtime_config.save()
     rag_manager.invalidate()
